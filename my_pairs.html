@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>My Forex Pairs</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body {{
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #000000;
+            font-family: Arial, sans-serif;
+        }}
+        .chart-container {{
+            width: 100%;
+            height: 400px;
+            margin-bottom: 20px;
+        }}
+        h2 {{
+            text-align: center;
+            font-size: 18px;
+        }}
+    </style>
+</head>
+<body>
+
+<h2>EURAUD</h2>
+<div id="chart1" class="chart-container"></div>
+<h2>NZDCHF</h2>
+<div id="chart2" class="chart-container"></div>
+<h2>CADJPY</h2>
+<div id="chart3" class="chart-container"></div>
+
+<script>
+    function createChart(containerId) {{
+        const chart = LightweightCharts.createChart(containerId, {{
+            width: window.innerWidth,
+            height: 400,
+            layout: {{
+                background: {{ color: '#ffffff' }},
+                textColor: '#000000'
+            }},
+            grid: {{
+                vertLines: {{ color: '#eeeeee' }},
+                horzLines: {{ color: '#eeeeee' }}
+            }},
+            timeScale: {{
+                timeVisible: true,
+                secondsVisible: false,
+            }},
+        }});
+        return chart.addCandlestickSeries();
+    }}
+
+    async function fetchAndUpdate(symbol, series) {{
+        try {{
+            const res = await fetch(`https://api.twelvedata.com/time_series?symbol=${{symbol}}&interval=1min&apikey=demo&outputsize=100`);
+            const data = await res.json();
+            if (!data.values) {{
+                console.error('API error:', data);
+                return;
+            }}
+            const candles = data.values.map(entry => {{
+                return {{
+                    time: Math.floor(new Date(entry.datetime).getTime() / 1000),
+                    open: parseFloat(entry.open),
+                    high: parseFloat(entry.high),
+                    low: parseFloat(entry.low),
+                    close: parseFloat(entry.close)
+                }};
+            }}).reverse();
+            series.setData(candles);
+        }} catch (e) {{
+            console.error('Error loading data for', symbol, e);
+        }}
+    }}
+
+    const eurAud = createChart('chart1');
+    const nzdChf = createChart('chart2');
+    const cadJpy = createChart('chart3');
+
+    fetchAndUpdate('EURAUD/FX_IDC', eurAud);
+    fetchAndUpdate('NZDCHF/FX_IDC', nzdChf);
+    fetchAndUpdate('CADJPY/FX_IDC', cadJpy);
+
+    setInterval(() => {{
+        fetchAndUpdate('EURAUD/FX_IDC', eurAud);
+        fetchAndUpdate('NZDCHF/FX_IDC', nzdChf);
+        fetchAndUpdate('CADJPY/FX_IDC', cadJpy);
+    }}, 60000); // refresh every 60 seconds
+</script>
+
+</body>
+</html>
